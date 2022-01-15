@@ -13,41 +13,16 @@ import kotlin.math.min
 class AnimationSurfaceView(context: Context): SurfaceView(context), SurfaceHolder.Callback {
     private var refreshRate: Float = 0f
 
-    private val animationThread = object : Thread() {
-        var circleRadius: Float = 0f
-        val paint = Paint().apply { color = Color.WHITE }
-
-        override fun run() {
-            while (holder.surface.isValid) {
-                val canvas = holder.lockCanvas()
-                canvas.drawARGB(255, 13, 61, 80)
-                canvas.drawCircle(
-                    (canvas.width / 2).toFloat(),
-                    (canvas.height / 2).toFloat(),
-                    circleRadius, paint
-                )
-
-                if (circleRadius < min(canvas.width, canvas.height) / 2) {
-                    circleRadius++
-                } else {
-                    circleRadius = 0f
-                }
-                holder.unlockCanvasAndPost(canvas)
-
-                try {
-                    sleep(ceil(1000 / refreshRate).toLong())
-                } catch (ex: InterruptedException) {
-                    ex.printStackTrace()
-                }
-            }
-        }
-    }
+    private var animationThread = createAnimationThread()
 
     fun changeRefreshRate(refreshRate: Float) {
         if (holder.surface.isValid) {
             holder.surface.setFrameRate(refreshRate, FRAME_RATE_COMPATIBILITY_FIXED_SOURCE, CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS)
             this.refreshRate = refreshRate
-            if (animationThread.state == Thread.State.NEW || animationThread.state == Thread.State.TERMINATED) {
+            if (animationThread.state == Thread.State.NEW) {
+                animationThread.start()
+            } else if (animationThread.state == Thread.State.TERMINATED) {
+                animationThread = createAnimationThread()
                 animationThread.start()
             }
         } else {
@@ -62,5 +37,37 @@ class AnimationSurfaceView(context: Context): SurfaceView(context), SurfaceHolde
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+    }
+
+    private fun createAnimationThread(): Thread {
+        return object : Thread() {
+            var circleRadius: Float = 0f
+            val paint = Paint().apply { color = Color.WHITE }
+
+            override fun run() {
+                while (holder.surface.isValid) {
+                    val canvas = holder.lockCanvas()
+                    canvas.drawARGB(255, 13, 61, 80)
+                    canvas.drawCircle(
+                        (canvas.width / 2).toFloat(),
+                        (canvas.height / 2).toFloat(),
+                        circleRadius, paint
+                    )
+
+                    if (circleRadius < min(canvas.width, canvas.height) / 2) {
+                        circleRadius++
+                    } else {
+                        circleRadius = 0f
+                    }
+                    holder.unlockCanvasAndPost(canvas)
+
+                    try {
+                        sleep(ceil(1000 / refreshRate).toLong())
+                    } catch (ex: InterruptedException) {
+                        ex.printStackTrace()
+                    }
+                }
+            }
+        }
     }
 }

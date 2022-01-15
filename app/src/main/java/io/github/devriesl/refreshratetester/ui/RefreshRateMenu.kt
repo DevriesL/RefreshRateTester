@@ -65,7 +65,7 @@ fun RefreshRateMenu(
                             }
                             append("Hz")
                         } else {
-                            append("动画未开始")
+                            append("选择动画帧率")
                         }
                     }
                 )
