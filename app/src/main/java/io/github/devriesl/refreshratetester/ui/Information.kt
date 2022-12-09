@@ -25,6 +25,7 @@ fun Information(
 ) {
     val refreshRatesList = testerViewModel.getRefreshRates()
     val refreshRate by testerViewModel.refreshRate.collectAsState()
+    val touchRate by testerViewModel.touchRate.collectAsState()
     val supportSeamlessVrr = testerViewModel.supportSeamlessVrr()
 
     Column(modifier = modifier) {
@@ -59,6 +60,20 @@ fun Information(
                     append(refreshRate?.toInt().toString())
                 }
                 append("Hz")
+            }
+        )
+        Spacer(modifier = Modifier.fillMaxWidth())
+        Text(
+            buildAnnotatedString {
+                append("估算触控采样率：")
+                if (touchRate != null) {
+                    withStyle(style = SpanStyle(color = Color.Magenta)) {
+                        append(touchRate.toString())
+                    }
+                    append("Hz")
+                } else {
+                    append("在屏幕上滑动一定距离")
+                }
             }
         )
     }

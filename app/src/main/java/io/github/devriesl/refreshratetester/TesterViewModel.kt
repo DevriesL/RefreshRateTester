@@ -15,6 +15,10 @@ class TesterViewModel(private val context: Context): ViewModel() {
     val refreshRate: StateFlow<Float?>
         get() = _refreshRate
 
+    private val _touchRate = MutableStateFlow<Long?>(null)
+    val touchRate: StateFlow<Long?>
+        get() = _touchRate
+
     private val displayListener = object : DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) {
         }
@@ -46,5 +50,9 @@ class TesterViewModel(private val context: Context): ViewModel() {
             }
         }
         return refreshRates.toList()
+    }
+
+    fun updateTouchRate(touchRate: Long) {
+        _touchRate.value = touchRate
     }
 }
