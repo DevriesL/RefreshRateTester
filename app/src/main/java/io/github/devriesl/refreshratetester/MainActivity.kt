@@ -14,7 +14,8 @@ import io.github.devriesl.refreshratetester.ui.theme.RefreshRateTesterTheme
 
 class MainActivity : ComponentActivity() {
     private val testerViewModel by lazy { TesterViewModel(this) }
-    private var eventQueue = EvictingQueue.create<Long>(1000)
+    private var elapsedQueue = EvictingQueue.create<Long>(1000)
+    private var eventQueue = EvictingQueue.create<Long>(10)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,30 +34,35 @@ class MainActivity : ComponentActivity() {
             && ev.action == ACTION_MOVE
             && ev.getToolType(0) == TOOL_TYPE_FINGER) {
 
-            for (i in 0 until ev.historySize) {
+            if (ev.historySize > 1) {
+                for (i in 0 until ev.historySize) {
                     eventQueue.add(ev.getHistoricalEventTime(i))
-            }
+                }
 
-            eventQueue.add(ev.eventTime)
-        } else if (ev?.action != ACTION_MOVE && eventQueue.size > 100) {
+                elapsedQueue.addAll(eventQueue.zipWithNext().map { it.second - it.first }.filter { it > 0 })
+                eventQueue.clear()
+            } else if (eventQueue.size == 1) {
+                val elapsedTime = ev.eventTime - eventQueue.first()
+                if (elapsedTime > 0) {
+                    elapsedQueue.add(elapsedTime)
+                }
+                eventQueue.clear()
+            } else {
+                eventQueue.add(ev.eventTime)
+            }
+        } else if (ev?.action != ACTION_MOVE && elapsedQueue.size > 60) {
             testerViewModel.updateTouchRate(calcTouchRate())
-            eventQueue.clear()
+            elapsedQueue.clear()
         } else if (ev?.pointerCount != 1) {
-            eventQueue.clear()
+            elapsedQueue.clear()
         }
 
         return super.dispatchTouchEvent(ev)
     }
 
     private fun calcTouchRate(): Long {
-        val eventIntervals = eventQueue.zipWithNext().map {
-            it.second - it.first
-        }.filter {
-            it > 0
-        }
-
-        val intervalsCount = eventIntervals.toSortedSet().map {
-            Pair(it, eventIntervals.count { interval -> interval == it })
+        val intervalsCount = elapsedQueue.toSortedSet().map {
+            Pair(it, elapsedQueue.count { interval -> interval == it })
         }
 
         val reliableInterval = intervalsCount.maxBy { it.second }.first
